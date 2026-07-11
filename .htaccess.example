@@ -1,0 +1,51 @@
+DirectoryIndex sp_viewer.php
+# trava de rede: libera se o IP estiver em QUALQUER uma destas faixas
+# (ajustar para as faixas do NOVO cliente/provedor: VPN, IPs fixos do escritório, etc.)
+# Os IPs/faixas abaixo são exemplos meramente ilustrativos (reservados pela
+# IANA/RFC 5737 especificamente para uso em documentação, nunca roteáveis de
+# verdade). Troque pelas faixas reais do seu contexto.
+<RequireAny>
+  Require ip 192.0.2.0/24
+  Require ip 198.51.100.0/24
+  Require ip 203.0.113.0/24
+</RequireAny>
+
+# nunca servir dotfiles (.htaccess, backups tipo .htaccess.bak.*, .env, etc.).
+# Proteção por prefixo, não só nome exato (o deny-all padrão do cPanel
+# costuma cobrir só ".htaccess"/".htpasswd" literalmente)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# headers de segurança (exige mod_headers, já presente na maioria dos EA4)
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "DENY"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src 'self'"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# Credenciais: RECOMENDADO configurar via sp_local_config.php (fora do
+# webroot), não aqui. Ver sp_local_config.php.example e DOCUMENTATION.md §4.
+#
+# O bloco abaixo é a alternativa via SetEnv, só necessária se você preferir
+# essa via ou se o host não permitir criar um arquivo fora do public_html.
+# Descomente e preencha SOMENTE se for usar esta opção (nunca as duas ao
+# mesmo tempo: sp_local_config.php, se existir, tem prioridade e ignora
+# estas linhas silenciosamente).
+# ---------------------------------------------------------------------------
+# SetEnv SP_DB_HOST   127.0.0.1
+# SetEnv SP_DB_NAME   NOME_DO_BANCO_SUPPORTPAL
+# SetEnv SP_DB_USER   usuario_readonly
+# SetEnv SP_DB_PASS   SENHA_AQUI
+# Hash da senha de acesso à interface. Gere com:
+#   php -r 'echo password_hash("SUA_SENHA", PASSWORD_DEFAULT), "\n";'
+# SetEnv SP_APP_HASH  $2y$10$SUBSTITUA_PELO_HASH_GERADO
+# Caminho FÍSICO da raiz de uploads do SupportPal (contém as subpastas de
+# `upload.folder`: public, tickets, email_log). Normalmente:
+#   {caminho_da_instalacao_supportpal}/storage/app
+# SetEnv SP_STORAGE   /home/USUARIO/domains/DOMINIO_SUPPORTPAL/public_html/storage/app
+# Allowlist de IP adicional por aplicação (CSV, opcional; a trava principal é o RequireAny acima)
+# SetEnv SP_ALLOW_IPS 203.0.113.1,203.0.113.2

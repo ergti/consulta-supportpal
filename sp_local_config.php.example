@@ -1,0 +1,26 @@
+<?php
+/**
+ * Template de config alternativa, fora do webroot (sem depender de mod_env).
+ *
+ * Copie este arquivo para FORA do public_html, como irmão dele (não dentro),
+ * renomeando para `sp_local_config.php`. Exemplo de estrutura:
+ *
+ *   /home/SEU_USUARIO/
+ *   ├── sp_local_config.php   <- este arquivo, fora da árvore servida
+ *   └── public_html/
+ *       ├── sp_viewer.php
+ *       └── .htaccess
+ *
+ * Preencha os valores reais abaixo. Este arquivo tem prioridade sobre
+ * SetEnv/$_SERVER/getenv() automaticamente (ver env_val() em sp_viewer.php).
+ */
+return [
+    'SP_DB_HOST'  => '127.0.0.1',
+    'SP_DB_NAME'  => 'NOME_DO_BANCO_SUPPORTPAL',
+    'SP_DB_USER'  => 'usuario_readonly',
+    'SP_DB_PASS'  => 'SENHA_AQUI',
+    // Gere com: php -r 'echo password_hash("SUA_SENHA", PASSWORD_DEFAULT), "\n";'
+    'SP_APP_HASH' => '$2y$10$SUBSTITUA_PELO_HASH_GERADO',
+    'SP_STORAGE'  => '/home/USUARIO/domains/DOMINIO_SUPPORTPAL/public_html/storage/app',
+    // 'SP_ALLOW_IPS' => '203.0.113.1,203.0.113.2',
+];
