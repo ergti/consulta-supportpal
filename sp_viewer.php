@@ -460,7 +460,7 @@ function list_articles(PDO $db, string $q, string $like, string $vis, int $page,
     $st->execute();
     $rows = $st->fetchAll();
 
-    echo '<table class="list"><thead><tr><th>#</th><th>Título</th><th>Tipos</th><th>Visib.</th><th>Status</th><th>Atualizado</th></tr></thead><tbody>';
+    echo '<div class="table-wrap"><table class="list"><thead><tr><th>#</th><th>Título</th><th>Tipos</th><th>Visib.</th><th>Status</th><th>Atualizado</th></tr></thead><tbody>';
     if (!$rows) echo '<tr><td colspan="6" class="empty">Nenhum artigo encontrado.</td></tr>';
     foreach ($rows as $r) {
         $vlabel = $r['any_internal'] ? '<span class="badge int">interno</span>' : '<span class="badge pub">público</span>';
@@ -476,7 +476,7 @@ function list_articles(PDO $db, string $q, string $like, string $vis, int $page,
         echo '<td class="mono muted">' . dt((int)$r['updated_at']) . '</td>';
         echo '</tr>';
     }
-    echo '</tbody></table>';
+    echo '</tbody></table></div>';
     pager($page, count($rows), "?tab=kb&q=" . urlencode($q) . "&vis=" . urlencode($vis));
 }
 
@@ -553,7 +553,7 @@ function list_tickets(PDO $db, string $q, string $like, bool $deep, string $tag,
     $stmt->execute();
     $rows = $stmt->fetchAll();
 
-    echo '<table class="list"><thead><tr><th>Nº</th><th>Assunto</th><th>Solicitante</th><th>Depto</th><th>Status</th><th>Atualizado</th></tr></thead><tbody>';
+    echo '<div class="table-wrap"><table class="list"><thead><tr><th>Nº</th><th>Assunto</th><th>Solicitante</th><th>Depto</th><th>Status</th><th>Atualizado</th></tr></thead><tbody>';
     if (!$rows) echo '<tr><td colspan="6" class="empty">Nenhum ticket encontrado.</td></tr>';
     foreach ($rows as $r) {
         $who = trim(($r['firstname'] ?? '') . ' ' . ($r['lastname'] ?? '')) ?: '-';
@@ -570,7 +570,7 @@ function list_tickets(PDO $db, string $q, string $like, bool $deep, string $tag,
         echo '<td class="mono muted">' . dt((int)$r['updated_at']) . '</td>';
         echo '</tr>';
     }
-    echo '</tbody></table>';
+    echo '</tbody></table></div>';
     pager($page, count($rows), "?tab=tickets&q=" . urlencode($q) . ($deep ? "&deep=1" : "")
         . ($tag !== '' ? "&tag=" . urlencode($tag) : "")
         . ($dep !== '' ? "&dep=" . urlencode($dep) : "")
@@ -793,10 +793,16 @@ function rewrite_media_urls(string $html): string {
  */
 function render_html_frame(string $html): string {
     $html = rewrite_media_urls($html);
-    $srcdoc = '<!doctype html><meta charset="utf-8"><base target="_blank">'
-            . '<style>body{margin:0;padding:12px;font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1a1a1a;word-wrap:break-word}'
-            . 'img{max-width:100%;height:auto}table{border-collapse:collapse;max-width:100%}td,th{border:1px solid #ddd;padding:4px 8px}'
-            . 'blockquote{border-left:3px solid #ccc;margin:0;padding-left:12px;color:#555}pre{white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px}</style>'
+    $srcdoc = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base target="_blank">'
+            . '<style>*{box-sizing:border-box}body{margin:0;padding:12px;font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1a1a1a;word-wrap:break-word;overflow-x:hidden}'
+            . 'img{max-width:100%;height:auto}'
+            // display:block + overflow-x:auto no próprio <table> permite rolagem
+            // horizontal só da tabela (não da página) quando o conteúdo colado
+            // (e-mail, planilha) tem mais colunas do que cabe na tela.
+            . 'table{display:block;overflow-x:auto;max-width:100%;border-collapse:collapse}'
+            . 'td,th{border:1px solid #ddd;padding:4px 8px}'
+            . 'blockquote{border-left:3px solid #ccc;margin:0;padding-left:12px;color:#555}'
+            . 'pre{white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:8px;border-radius:4px}</style>'
             . $html;
     return '<iframe class="render" sandbox="allow-same-origin" srcdoc="' . h($srcdoc) . '" '
          . 'onload="spResizeIframe(this)"></iframe>';
@@ -937,6 +943,7 @@ button:hover{filter:brightness(1.08)}
 .tagpill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:20px;color:var(--txt)}
 .tagpill:hover{color:var(--acc)}
 mark{background:rgba(232,163,61,.35);color:inherit;padding:0 1px;border-radius:2px}
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 table.list{width:100%;border-collapse:collapse;font-size:14px}
 table.list th{text-align:left;color:var(--mut);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line)}
 table.list td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -966,10 +973,32 @@ tr.deleted td{opacity:.55}
 .attachments a{color:var(--acc);text-decoration:underline}
 .diag{margin-top:40px;padding-top:20px;border-top:1px dashed var(--line)}
 .diag h3{color:var(--acc)}
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-.login form{background:var(--panel);border:1px solid var(--line);padding:32px;border-radius:12px;width:300px;display:flex;flex-direction:column;gap:12px}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;box-sizing:border-box}
+.login form{background:var(--panel);border:1px solid var(--line);padding:32px;border-radius:12px;width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px}
 .login h1{font-size:18px;margin:0;color:var(--hdr)}
 .login p{margin:0}
 .login .err{color:#e0846c;font-size:13px}
+
+/* Responsivo: telas estreitas (celular). O layout já é fluido por padrão
+ * (%, flex-wrap, max-width em vez de largura fixa) e o iframe de conteúdo
+ * já se ajusta sozinho (JS de resize); os ajustes abaixo são só refinamento
+ * de espaçamento/tamanho para telas pequenas. */
+@media (max-width:640px){
+  .wrap{padding:16px 12px 60px}
+  .brand{font-size:11px;flex-wrap:wrap}
+  .search{gap:6px}
+  .search input[type=search]{min-width:0}
+  .tagsel,#tagac{width:100%;max-width:none}
+  table.list th,table.list td{padding:7px 6px;font-size:13px}
+  /* esconde as 2 colunas menos essenciais (3ª e 4ª: Tipos/Visib. na aba KB,
+   * Solicitante/Depto na aba Tickets) pra evitar rolagem horizontal da
+   * tabela em telas pequenas; o .table-wrap com overflow-x continua como
+   * rede de segurança pra qualquer conteúdo que ainda não caiba */
+  table.list th:nth-child(3), table.list td:nth-child(3),
+  table.list th:nth-child(4), table.list td:nth-child(4) { display:none }
+  .doc h1,.doc-head h1{font-size:20px}
+  .meta{gap:6px}
+  .pager{flex-wrap:wrap;gap:10px}
+}
 CSS;
 }
