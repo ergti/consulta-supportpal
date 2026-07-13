@@ -255,6 +255,28 @@ pegava o objeto `PDOStatement` em vez do filtro de status, disparando
 fechamento do HTML) **em toda listagem de tickets**, não só ao filtrar por
 status. Corrigido renomeando a variável local para `$stmt`.
 
+**Regressão introduzida pela própria correção de segurança (encontrada em
+2026-07-13):** o `Content-Security-Policy` adicionado acima não incluía
+`script-src` com `'unsafe-inline'`, só `style-src`. Como a aplicação usa
+handlers inline (`onclick`, `onload`) e blocos `<script>` embutidos (troca
+de tema, autocomplete de tags, e o redimensionamento automático do iframe
+de conteúdo), o CSP bloqueava **todo** JavaScript da própria aplicação
+silenciosamente (sem erro visível ao usuário, só no console do navegador).
+Sintoma relatado: tela de ticket pequena, com barra de rolagem interna,
+porque a altura do iframe nunca era ajustada. Corrigido adicionando
+`script-src 'self' 'unsafe-inline'` ao CSP. Como nenhum desses scripts é
+construído a partir de input do usuário (são strings estáticas do
+desenvolvedor), permitir inline aqui não reabre o vetor de XSS corrigido
+em §6.1 (que era sobre `Content-Type` de anexo, não sobre CSP).
+
+Aproveitando a investigação, o redimensionamento do iframe também foi
+melhorado: antes, a altura só era medida uma vez, no evento `onload` do
+iframe, então imagens que terminassem de carregar depois disso ficavam de
+fora do cálculo (mesmo sintoma de barra de rolagem, causa diferente e mais
+sutil). Agora usa `ResizeObserver` pra reajustar sempre que o conteúdo
+interno mudar de tamanho (com fallback por `setTimeout` em navegadores sem
+suporte a `ResizeObserver`).
+
 ### 6.2 Aplicação na instância original (Sierti, 2026-07-11)
 
 Os commits `535d209`/`5a4cd72` (§6.1) foram desenvolvidos e validados durante

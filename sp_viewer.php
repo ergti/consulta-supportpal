@@ -799,7 +799,7 @@ function render_html_frame(string $html): string {
             . 'blockquote{border-left:3px solid #ccc;margin:0;padding-left:12px;color:#555}pre{white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px}</style>'
             . $html;
     return '<iframe class="render" sandbox="allow-same-origin" srcdoc="' . h($srcdoc) . '" '
-         . 'onload="this.style.height=(this.contentWindow.document.body.scrollHeight+24)+\'px\'"></iframe>';
+         . 'onload="spResizeIframe(this)"></iframe>';
 }
 
 /* =====================================================================
@@ -815,6 +815,7 @@ function layout_head(string $title): void {
     echo '<button type="button" class="theme-btn" onclick="spToggleTheme()">tema</button>';
     echo '</div>';
     echo theme_js();
+    echo iframe_resize_js();
 }
 function layout_foot(): void { echo '</div></body></html>'; }
 
@@ -824,6 +825,33 @@ function theme_js(): string {
          . 'var b=document.body,on=b.classList.toggle("light");'
          . 'document.cookie="sp_theme="+(on?"light":"dark")+";path=/;max-age=31536000;samesite=Lax";'
          . '}</script>';
+}
+
+/**
+ * Ajusta a altura de um iframe de conteúdo (render_html_frame) para caber
+ * sem barra de rolagem. Medir só no onload não basta: imagens dentro do
+ * srcdoc costumam terminar de carregar DEPOIS do onload do iframe, então a
+ * altura calculada naquele momento fica menor que o conteúdo final.
+ * Com ResizeObserver, reajusta automaticamente sempre que o corpo interno
+ * mudar de tamanho (imagem carregando, fonte carregando, etc.); sem
+ * suporte a ResizeObserver, reconfere algumas vezes nos primeiros segundos.
+ */
+function iframe_resize_js(): string {
+    return <<<'JS'
+<script>
+function spResizeIframe(ifr){
+  function sync(){
+    try{ ifr.style.height=(ifr.contentWindow.document.body.scrollHeight+24)+'px'; }catch(e){}
+  }
+  sync();
+  try{
+    var body=ifr.contentWindow.document.body;
+    if(window.ResizeObserver){ new ResizeObserver(sync).observe(body); }
+    else { [150,400,900,2000].forEach(function(t){ setTimeout(sync,t); }); }
+  }catch(e){}
+}
+</script>
+JS;
 }
 
 /* JS do autocomplete de tags: consulta ?tags=termo e preenche a lista.
