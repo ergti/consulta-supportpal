@@ -341,6 +341,42 @@ dotfile do host estar correto para proteger as credenciais.
   que não faz parte deste app nem foi alterada aqui, descoberta ao tentar
   validar via HTTP externo.
 
+### 6.4 Sincronização com o CSP fix e responsividade (Sierti, 2026-07-13)
+
+Instância original atualizada com os commits `ba934ab` (correção do CSP que
+bloqueava todo JS inline da aplicação) e `74535e5` (interface responsiva).
+
+- **Backup** de `.htaccess` e `sp_viewer.php` anteriores, fora do webroot.
+- **`sp_viewer.php`** substituído pela versão dos dois commits.
+- **CSP no `.htaccess`** de produção ganhou `script-src 'self' 'unsafe-inline'`
+  (faltava só esse trecho; resto do header preservado).
+- **Validação via HTTP real, contornando o Cloudflare Access** (§6.2/6.3
+  descobriram essa camada na frente do domínio): requisição direta ao IP de
+  origem do servidor com `Host:` forjado para o domínio chega direto no
+  Apache. Por coincidência, o IP de onde os testes rodaram já estava na
+  allowlist (adicionado numa sessão anterior), então a resposta veio como
+  a tela de login real, com os headers de produção completos, confirmando
+  que o `Content-Security-Policy` corrigido está de fato sendo enviado.
+- **Validação visual com navegador real**, sem precisar da senha de acesso:
+  HTML autenticado de um ticket real com 9 anexos de imagem (nº 110926) e da
+  listagem de tickets foi capturado via CLI (sessão forçada, mesma técnica
+  de §6.2/6.3), servido localmente por um servidor de teste que replica
+  exatamente os headers de segurança do `.htaccess` de produção (incluindo o
+  CSP), e aberto no navegador:
+  - Nenhuma violação de CSP no console.
+  - Botão de tema alternou `dark`/`light` corretamente (classe no `<body>` e
+    cookie `sp_theme` confirmados via JS).
+  - Os 27 iframes de conteúdo da página do ticket bateram `height` exatamente
+    igual a `scrollHeight + 24` (fórmula do `spResizeIframe`), sem barra de
+    rolagem sobrando.
+  - Testado em 375px, 768px e 2560px: sem rolagem horizontal da página em
+    nenhuma das três larguras (`document.documentElement.scrollWidth` igual
+    à largura da viewport); na listagem de tickets em 375px, a tabela
+    overflowa só dentro do próprio `.table-wrap` (rolagem interna), com as
+    colunas Solicitante/Depto ocultas como projetado.
+  - Todos os arquivos temporários (HTML capturado, imagens reais baixadas,
+    servidor de teste local) apagados ao final da validação.
+
 ## 7. Replicando para outro provedor/cliente
 
 Passo a passo genérico:
