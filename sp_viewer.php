@@ -104,6 +104,11 @@ const MSG_BY_OPERATOR = 1;  // valor de `by` que representa OPERADOR
 
 const PER_PAGE = 25;
 
+/* Versão exibida na tela de login (link pro changelog no GitHub). Atualizar
+ * a cada mudança relevante, seguindo semver (semver.org) e o CHANGELOG.md. */
+const APP_VERSION = '1.0.0';
+const APP_REPO_URL = 'https://github.com/ergti/consulta-supportpal';
+
 /* ---------------------------------------------------------------------
  * Mime types seguros para exibir inline no navegador (serve_media). Fora
  * desta lista (ex.: text/html, image/svg+xml) o arquivo vira download
@@ -905,7 +910,12 @@ function render_login(string $err): void {
     echo '<form method="post"><h1>Consulta SupportPal</h1><p class="muted">acesso interno</p>';
     if ($err) echo '<p class="err">' . h($err) . '</p>';
     echo '<input type="password" name="password" placeholder="senha" autofocus required>';
-    echo '<button>Entrar</button></form></div></body></html>';
+    echo '<button>Entrar</button></form>';
+    echo '<div class="login-foot">'
+       . '<a href="' . h(APP_REPO_URL) . '/blob/main/CHANGELOG.md" target="_blank" rel="noopener">v' . h(APP_VERSION) . '</a>'
+       . ' · <a href="' . h(APP_REPO_URL) . '" target="_blank" rel="noopener">GitHub</a>'
+       . '</div>';
+    echo '</div></body></html>';
 }
 
 /* CSS como função: funções são hoisted em PHP, então pode ser usada acima. */
@@ -973,11 +983,14 @@ tr.deleted td{opacity:.55}
 .attachments a{color:var(--acc);text-decoration:underline}
 .diag{margin-top:40px;padding-top:20px;border-top:1px dashed var(--line)}
 .diag h3{color:var(--acc)}
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;box-sizing:border-box}
+.login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:20px;box-sizing:border-box}
 .login form{background:var(--panel);border:1px solid var(--line);padding:32px;border-radius:12px;width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px}
 .login h1{font-size:18px;margin:0;color:var(--hdr)}
 .login p{margin:0}
 .login .err{color:#e0846c;font-size:13px}
+.login-foot{margin-top:18px;font-size:12px;color:var(--mut);text-align:center}
+.login-foot a{color:var(--mut);text-decoration:underline;text-underline-offset:2px}
+.login-foot a:hover{color:var(--acc)}
 
 /* Responsivo: telas estreitas (celular). O layout já é fluido por padrão
  * (%, flex-wrap, max-width em vez de largura fixa) e o iframe de conteúdo
