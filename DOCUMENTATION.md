@@ -377,6 +377,19 @@ bloqueava todo JS inline da aplicação) e `74535e5` (interface responsiva).
   - Todos os arquivos temporários (HTML capturado, imagens reais baixadas,
     servidor de teste local) apagados ao final da validação.
 
+### 6.5 Versionamento v1.0.0 sincronizado (Sierti, 2026-07-13)
+
+Instância original atualizada para a versão do commit `52a1c92`/tag
+`v1.0.0`: tela de login ganhou rodapé discreto com a versão atual
+(`v1.0.0`, link pro `CHANGELOG.md`) e um link pro repositório no GitHub.
+Mudança puramente cosmética na tela de login, sem alteração de lógica de
+negócio, banco ou config.
+
+- **Backup** do `sp_viewer.php` anterior, fora do webroot.
+- **Validado via PHP CLI** (sem sessão autenticada, direto na tela de
+  login): confirmado o markup exato do rodapé, com os dois links
+  apontando para as URLs corretas do repositório, `php -l` sem erros.
+
 ## 7. Replicando para outro provedor/cliente
 
 Passo a passo genérico:
