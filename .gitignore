@@ -1,3 +1,4 @@
 .htaccess
 sp_local_config.php
 .DS_Store
+.obsidian/
