@@ -161,6 +161,23 @@ if ($CFG['allow_ips'] !== '') {
  * Helpers
  * ===================================================================== */
 function h(?string $s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+
+/**
+ * Monta o termo de uma clausula LIKE, escapando os curingas do proprio LIKE.
+ *
+ * O valor ja vai vinculado por PDO, entao nunca houve injecao de SQL aqui. O
+ * problema e outro: `%` e `_` digitados pelo usuario continuavam valendo como
+ * curinga dentro do padrao. Uma busca por `%` casava tudo, e como a busca
+ * profunda faz LIKE sem indice em `ticket_message.text`, isso varria o acervo
+ * inteiro em ate 8 predicados de uma vez, contra o teto de 20s do roteador.
+ *
+ * A contrabarra e o caractere de escape padrao do LIKE no MySQL e no MariaDB,
+ * por isso nao ha clausula ESCAPE: acrescenta-la exigiria um literal na SQL,
+ * que `NO_BACKSLASH_ESCAPES` mudaria de significado.
+ */
+function like_term(string $s): string {
+    return '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $s) . '%';
+}
 function dt(?int $ts): string  { return $ts ? date('d/m/Y H:i', $ts) : '-'; }
 
 /**
@@ -310,8 +327,13 @@ function serve_media(PDO $db, array $cfg, string $hash): void {
     }
     if ($path === '') {
         http_response_code(404);
-        // dica para depuração de layout do storage (apenas internamente)
-        exit('Arquivo não localizado no disco. Candidatos testados:' . PHP_EOL . implode(PHP_EOL, $candidates));
+        // Os caminhos testados vao para o log do servidor, nunca para a resposta:
+        // eles carregam SP_STORAGE inteiro, ou seja, o caminho absoluto e o usuario
+        // da hospedagem. O comentario anterior dizia "apenas internamente", mas o
+        // texto saia no corpo HTTP para qualquer pessoa autenticada.
+        error_log('[sp_viewer] upload sem arquivo no disco, hash=' . $hash
+                  . ' candidatos: ' . implode(' | ', $candidates));
+        exit('Arquivo não localizado no disco.');
     }
 
     $mime = $u['mime'] ?: 'application/octet-stream';
@@ -342,7 +364,7 @@ function suggest_tags(PDO $db, string $term): void {
          ORDER BY usos DESC, tt.name ASC
          LIMIT 15"
     );
-    $st->bindValue(':t', '%' . $term . '%');
+    $st->bindValue(':t', like_term($term));
     $st->execute();
     echo json_encode($st->fetchAll(), JSON_UNESCAPED_UNICODE);
 }
@@ -355,7 +377,7 @@ function render_search(PDO $db): void {
     $q    = trim((string)($_GET['q'] ?? ''));
     $page = max(1, (int)($_GET['p'] ?? 1));
     $off  = ($page - 1) * PER_PAGE;
-    $like = '%' . $q . '%';
+    $like = like_term($q);
 
     header('Content-Type: text/html; charset=utf-8');
     layout_head('Consulta SupportPal');
