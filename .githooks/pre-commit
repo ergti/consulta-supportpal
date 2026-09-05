@@ -1,9 +1,9 @@
 #!/bin/sh
 # Shim. A logica das guardas vive em UM lugar so, e nao aqui:
-#   /Users/eltern/work/CODE/skill/_guardas/pre-commit
+#   /Users/eltern/_SIERTI/CODE/skill/_guardas/pre-commit
 # Nao edite este arquivo para mudar comportamento: edite a implementacao la, e a
 # mudanca vale para todos os repositorios de uma vez. Ver _guardas/README.md.
-COMUM="/Users/eltern/work/CODE/skill/_guardas/pre-commit"
+COMUM="/Users/eltern/_SIERTI/CODE/skill/_guardas/pre-commit"
 if [ ! -x "$COMUM" ]; then
   echo "pre-commit: guarda comum ausente ou sem permissao de execucao em:" >&2
   echo "  $COMUM" >&2
