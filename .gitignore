@@ -2,3 +2,8 @@
 sp_local_config.php
 .DS_Store
 .obsidian/
+
+# Segredos de ambiente (varredura de seguranca 2026-09-05)
+.env
+.env.*
+!.env.example
