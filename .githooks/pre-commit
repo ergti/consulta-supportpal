@@ -1,14 +1,14 @@
 #!/bin/sh
 # Shim. A logica das guardas vive em UM lugar so, e nao aqui:
-#   /Users/eltern/_SIERTI/CODE/skill/_guardas/pre-commit
+#   $HOME/_SIERTI/CODE/skill/_guardas/pre-commit (ou SIERTI_GUARDA_PRE_COMMIT)
 # Nao edite este arquivo para mudar comportamento: edite a implementacao la, e a
 # mudanca vale para todos os repositorios de uma vez. Ver _guardas/README.md.
-COMUM="/Users/eltern/_SIERTI/CODE/skill/_guardas/pre-commit"
+COMUM="${SIERTI_GUARDA_PRE_COMMIT:-$HOME/_SIERTI/CODE/skill/_guardas/pre-commit}"
 if [ ! -x "$COMUM" ]; then
   echo "pre-commit: guarda comum ausente ou sem permissao de execucao em:" >&2
   echo "  $COMUM" >&2
   echo "Abortando por seguranca (desenho fail-closed)." >&2
-  echo "Reponha com: git clone git@github.com:sierti/skill.git" >&2
+  echo "Reponha a arvore da skill nesse caminho ou exporte SIERTI_GUARDA_PRE_COMMIT." >&2
   exit 1
 fi
 exec "$COMUM" "$@"
