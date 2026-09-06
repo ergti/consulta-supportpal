@@ -64,6 +64,37 @@ want_true('os candidatos vao para o error_log',  (bool)preg_match('/error_log\(.
 want_true('a mensagem ao usuario continua generica',
     (bool)preg_match("/exit\('Arquivo não localizado no disco\.'\)/", $bloco));
 
+/* ── achado M3 (varredura 2026-09-05): limite de tentativas de login ──── */
+if (!preg_match('/^const LOGIN_MAX_FALHAS.*?\n(?=\/\*\*)/ms', $src, $c)
+    || !preg_match('/^function login_throttle\(.*?\n\}/ms', $src, $f)) {
+    fwrite(STDERR, "ABORTADO: nao achei login_throttle() em sp_viewer.php\n");
+    exit(2);
+}
+eval($c[0] . $f[0]);
+$dir = sys_get_temp_dir() . '/sp_viewer_test_' . getmypid();
+@mkdir($dir);
+$t0  = 1_800_000_000;
+echo "── achado M3: limite de tentativas de login ──\n";
+want('IP novo esta liberado',                    login_throttle('10.0.0.1', null,  $t0, $dir), 0);
+for ($i = 1; $i <= 4; $i++) { login_throttle('10.0.0.1', false, $t0 + $i, $dir); }
+want('4 falhas ainda nao bloqueiam',             login_throttle('10.0.0.1', null,  $t0 + 5, $dir), 0);
+login_throttle('10.0.0.1', false, $t0 + 5, $dir);
+want('5a falha bloqueia por 15 min',             login_throttle('10.0.0.1', null,  $t0 + 6, $dir), 899);
+want('outro IP nao e afetado',                   login_throttle('10.0.0.2', null,  $t0 + 6, $dir), 0);
+want('bloqueio expira 15 min apos a ultima falha', login_throttle('10.0.0.1', null, $t0 + 5 + 901, $dir), 0);
+login_throttle('10.0.0.1', false, $t0 + 2000, $dir);
+login_throttle('10.0.0.1', true,  $t0 + 2001, $dir);
+want('sucesso zera o contador',                  login_throttle('10.0.0.1', null,  $t0 + 2002, $dir), 0);
+want_true('falha sem sucesso conta de novo do zero apos a janela',
+    login_throttle('10.0.0.1', false, $t0 + 2003, $dir) === 0);
+$bl = preg_match('/if \(empty\(\$_SESSION\[\'auth\'\]\)\) \{.*?render_login\(\$err\);/s', $src, $lb) ? $lb[0] : '';
+want_true('o fluxo de login consulta o throttle antes do password_verify',
+    strpos($bl, 'login_throttle($ip)') !== false && strpos($bl, 'login_throttle($ip)') < strpos($bl, 'password_verify'));
+want_true('falha registra e sucesso zera',
+    strpos($bl, 'login_throttle($ip, false)') !== false && strpos($bl, 'login_throttle($ip, true)') !== false);
+want_true('bloqueio responde 429', strpos($bl, 'http_response_code(429)') !== false);
+array_map('unlink', glob("$dir/sp_login_*") ?: []); @rmdir($dir);
+
 echo $falhas === 0
     ? "\nOK, todas as verificacoes passaram\n"
     : "\n$falhas verificacao(oes) falharam\n";

@@ -162,6 +162,32 @@ if ($CFG['allow_ips'] !== '') {
  * ===================================================================== */
 function h(?string $s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
+/* Limite de tentativas de login: 5 falhas em 15 min bloqueiam o IP por 15 min
+ * contados da ultima falha. Contador em arquivo no diretorio temporario, um
+ * por IP (hash), sem banco e sem dependencia. Sucesso zera o contador.
+ * Usa REMOTE_ADDR como a allowlist acima: atras de proxy reverso sem
+ * X-Forwarded-For confiavel, todos os visitantes dividem o mesmo balde. */
+const LOGIN_MAX_FALHAS = 5;
+const LOGIN_JANELA     = 900;
+
+/**
+ * @param bool|null $evento null = consultar; false = registrar falha; true = sucesso (zera)
+ * @return int segundos de bloqueio restantes, 0 = liberado
+ */
+function login_throttle(string $ip, ?bool $evento = null, ?int $agora = null, ?string $dir = null): int {
+    $agora = $agora ?? time();
+    $arq   = ($dir ?? sys_get_temp_dir()) . '/sp_login_' . hash('sha256', $ip);
+    if ($evento === true) { @unlink($arq); return 0; }
+    [$n, $ultimo] = array_map('intval', explode(' ', (string)@file_get_contents($arq)) + [0, 0]);
+    if ($agora - $ultimo > LOGIN_JANELA) { $n = 0; }
+    if ($evento === false) {
+        $n++;
+        $ultimo = $agora;
+        @file_put_contents($arq, "$n $ultimo", LOCK_EX);
+    }
+    return $n >= LOGIN_MAX_FALHAS ? max(0, LOGIN_JANELA - ($agora - $ultimo)) : 0;
+}
+
 /**
  * Monta o termo de uma clausula LIKE, escapando os curingas do proprio LIKE.
  *
@@ -250,12 +276,22 @@ if ($CFG['app_hash'] === '') {
 if (empty($_SESSION['auth'])) {
     $err = '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
+        $ip     = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $espera = login_throttle($ip);
+        if ($espera > 0) {
+            http_response_code(429);
+            header('Retry-After: ' . $espera);
+            render_login('Muitas tentativas. Aguarde ' . (int)ceil($espera / 60) . ' min.');
+            exit;
+        }
         if (password_verify((string)$_POST['password'], $CFG['app_hash'])) {
+            login_throttle($ip, true);
             session_regenerate_id(true);
             $_SESSION['auth'] = true;
             header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
             exit;
         }
+        login_throttle($ip, false);
         $err = 'Senha incorreta.';
         usleep(600000); // pequeno atraso anti-bruteforce
     }
